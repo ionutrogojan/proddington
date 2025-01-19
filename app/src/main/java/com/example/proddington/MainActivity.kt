@@ -76,6 +76,7 @@ data class CalcResult(
     val rps: MutableState<Double> = mutableDoubleStateOf(0.0)
 )
 
+// TODO: Prevent Landscape mode
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalLayoutApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
