@@ -2,4 +2,4 @@
 
 A tool I use at work to make my life easier.
 
-<p align="center"><img src="/images/example.png" width="100%"/></p>
+<p align="center"><img src="/images/example.png" width="30%"/></p>
