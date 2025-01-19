@@ -1,5 +1,7 @@
 package com.example.proddington
 
+import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -76,11 +78,15 @@ data class CalcResult(
     val rps: MutableState<Double> = mutableDoubleStateOf(0.0)
 )
 
-// TODO: Prevent Landscape mode
 class MainActivity : ComponentActivity() {
+    @SuppressLint("SourceLockedOrientationActivity")
     @OptIn(ExperimentalLayoutApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Lock the screen orientation to portrait
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
         enableEdgeToEdge()
         setContent {
 
@@ -195,11 +201,12 @@ fun calc(results: CalcResult, states: InputState) {
     results.rph.value = states.reqMaterial.value.toDouble() / states.remHours.value.toDouble()
     if (states.remHours.value.toDouble() < states.shiftHours.value.toDouble()) {
         results.pps.value = states.remPallets.value.toDouble()
-        results.rps.value = (results.rph.value * states.remHours.value.toDouble()) / states.avgRollSize.value.toDouble()
-    }
-    else {
+        results.rps.value =
+            (results.rph.value * states.remHours.value.toDouble()) / states.avgRollSize.value.toDouble()
+    } else {
         results.pps.value = results.pph.value * states.shiftHours.value.toDouble()
-        results.rps.value = (results.rph.value * states.shiftHours.value.toDouble()) / states.avgRollSize.value.toDouble()
+        results.rps.value =
+            (results.rph.value * states.shiftHours.value.toDouble()) / states.avgRollSize.value.toDouble()
     }
 }
 
@@ -264,7 +271,6 @@ fun OutResult(results: CalcResult) {
     }
 }
 
-// TODO: Validate that all fields are floating values to prevent crashing
 // TODO: Prevent keyboard paste suggestions
 @Composable
 fun InText(
@@ -275,7 +281,14 @@ fun InText(
 ) {
     TextField(
         value = state.value,
-        onValueChange = { state.value = it },
+        // This onValueChanged is so ChatGPTed that I don't even understand it yet,
+        // but I will have to get back to it and figure it out
+        // It prevents anything other than floating point numbers from being entered
+        onValueChange = { input ->
+            state.value = input.filterIndexed { index, c ->
+                c.isDigit() || (c == '.' && !input.take(index).contains('.'))
+            }
+        },
         label = { Text(text = name) },
         leadingIcon = { Icon(painterResource(icon), contentDescription = null) },
         singleLine = true,
