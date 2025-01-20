@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -37,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -104,91 +108,98 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(backgroundColor),
                 ) {
-                    // TODO: Somehow scroll into view the text field
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 16.dp, top = 32.dp, end = 16.dp, bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        Banner(image = R.drawable.banner)
-                        InText(
-                            name = "Material Required",
-                            state = states.reqMaterial,
-                            focus = focuses.reqMaterial,
-                            icon = R.drawable.req_material
-                        )
-                        InText(
-                            name = "Remaining Pallets",
-                            state = states.remPallets,
-                            focus = focuses.remPallets,
-                            icon = R.drawable.rem_pallets
-                        )
-                        InText(
-                            name = "Remaining Hours",
-                            state = states.remHours,
-                            focus = focuses.remHours,
-                            icon = R.drawable.rem_hours
-                        )
-                        InText(
-                            name = "Average Roll Size",
-                            state = states.avgRollSize,
-                            focus = focuses.avgRollSize,
-                            icon = R.drawable.avr_roll_size
-                        )
-                        InText(
-                            name = "Shift Hours",
-                            state = states.shiftHours,
-                            focus = focuses.shiftHours,
-                            icon = R.drawable.shift_hours
-                        )
-                        if (showResult.value) OutResult(results)
-                    }
-                    // TODO: Find out a better way to calculate the bottom bar height and pad according to it
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(backgroundColor)
-                            .align(Alignment.BottomCenter)
                             .padding(
-                                start = 16.dp,
-                                top = 16.dp,
-                                end = 16.dp,
-                                if (WindowInsets.isImeVisible) 16.dp else 64.dp
+                                top = with(LocalDensity.current) { WindowInsets.statusBars.getTop(this).toDp() },
+                                // God knows at this point. It works, but the padding is not going back to
+                                // the navigationBars height after closing the keyboard because the
+                                // animation is not done. So it goes down to 0.dp padding and it slides
+                                // back to the navigationBars height as the keyboard closes.
+                                bottom = if (!WindowInsets.isImeVisible) with(LocalDensity.current) { WindowInsets.navigationBars.getBottom(this).toDp() } else 0.dp
                             )
-                            .imePadding()
-                            .zIndex(1f),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        CalcButton(name = "Calculate",
+                        // TODO: Somehow scroll into view the text field
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Banner(image = R.drawable.banner)
+                            InText(
+                                name = "Material Required",
+                                state = states.reqMaterial,
+                                focus = focuses.reqMaterial,
+                                icon = R.drawable.req_material
+                            )
+                            InText(
+                                name = "Remaining Pallets",
+                                state = states.remPallets,
+                                focus = focuses.remPallets,
+                                icon = R.drawable.rem_pallets
+                            )
+                            InText(
+                                name = "Remaining Hours",
+                                state = states.remHours,
+                                focus = focuses.remHours,
+                                icon = R.drawable.rem_hours
+                            )
+                            InText(
+                                name = "Average Roll Size",
+                                state = states.avgRollSize,
+                                focus = focuses.avgRollSize,
+                                icon = R.drawable.avr_roll_size
+                            )
+                            InText(
+                                name = "Shift Hours",
+                                state = states.shiftHours,
+                                focus = focuses.shiftHours,
+                                icon = R.drawable.shift_hours
+                            )
+                            if (showResult.value) OutResult(results)
+                        }
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f),
-                            onClick = {
-                                when {
-                                    states.reqMaterial.value.isEmpty() -> focuses.reqMaterial.requestFocus()
-                                    states.remPallets.value.isEmpty() -> focuses.remPallets.requestFocus()
-                                    states.remHours.value.isEmpty() -> focuses.remHours.requestFocus()
-                                    states.avgRollSize.value.isEmpty() -> focuses.avgRollSize.requestFocus()
-                                    states.shiftHours.value.isEmpty() -> focuses.shiftHours.requestFocus()
-                                    else -> {
-                                        keyboardController?.hide()
-                                        calc(results, states)
-                                        showResult.value = true
+                                .background(backgroundColor)
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp)
+                                .imePadding()
+                                .zIndex(1f),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CalcButton(name = "Calculate",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                onClick = {
+                                    when {
+                                        states.reqMaterial.value.isEmpty() -> focuses.reqMaterial.requestFocus()
+                                        states.remPallets.value.isEmpty() -> focuses.remPallets.requestFocus()
+                                        states.remHours.value.isEmpty() -> focuses.remHours.requestFocus()
+                                        states.avgRollSize.value.isEmpty() -> focuses.avgRollSize.requestFocus()
+                                        states.shiftHours.value.isEmpty() -> focuses.shiftHours.requestFocus()
+                                        else -> {
+                                            keyboardController?.hide()
+                                            calc(results, states)
+                                            showResult.value = true
+                                        }
                                     }
+                                })
+                            ResetButton(
+                                onClick = {
+                                    showResult.value = false
+                                    focuses.reqMaterial.requestFocus()
+                                    states.reqMaterial.value = ""
+                                    states.remPallets.value = ""
+                                    states.remHours.value = ""
+                                    states.avgRollSize.value = ""
+                                    states.shiftHours.value = ""
                                 }
-                            })
-                        ResetButton(
-                            onClick = {
-                                showResult.value = false
-                                focuses.reqMaterial.requestFocus()
-                                states.reqMaterial.value = ""
-                                states.remPallets.value = ""
-                                states.remHours.value = ""
-                                states.avgRollSize.value = ""
-                                states.shiftHours.value = ""
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
