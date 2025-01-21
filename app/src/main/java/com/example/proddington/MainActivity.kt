@@ -11,18 +11,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -84,7 +83,6 @@ data class CalcResult(
 
 class MainActivity : ComponentActivity() {
     @SuppressLint("SourceLockedOrientationActivity")
-    @OptIn(ExperimentalLayoutApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -112,53 +110,66 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(
-                                top = with(LocalDensity.current) { WindowInsets.statusBars.getTop(this).toDp() },
-                                // God knows at this point. It works, but the padding is not going back to
-                                // the navigationBars height after closing the keyboard because the
-                                // animation is not done. So it goes down to 0.dp padding and it slides
-                                // back to the navigationBars height as the keyboard closes.
-                                bottom = if (!WindowInsets.isImeVisible) with(LocalDensity.current) { WindowInsets.navigationBars.getBottom(this).toDp() } else 0.dp
+                                top = with(LocalDensity.current)
+                                    { WindowInsets.statusBars.getTop(this).toDp() }
                             )
                     ) {
-                        // TODO: Somehow scroll into view the text field
-                        Column(
+                        LazyColumn(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
+                                .padding(16.dp)
+                                .imePadding(),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            Banner(image = R.drawable.banner)
-                            InText(
-                                name = "Material Required",
-                                state = states.reqMaterial,
-                                focus = focuses.reqMaterial,
-                                icon = R.drawable.req_material
-                            )
-                            InText(
-                                name = "Remaining Pallets",
-                                state = states.remPallets,
-                                focus = focuses.remPallets,
-                                icon = R.drawable.rem_pallets
-                            )
-                            InText(
-                                name = "Remaining Hours",
-                                state = states.remHours,
-                                focus = focuses.remHours,
-                                icon = R.drawable.rem_hours
-                            )
-                            InText(
-                                name = "Average Roll Size",
-                                state = states.avgRollSize,
-                                focus = focuses.avgRollSize,
-                                icon = R.drawable.avr_roll_size
-                            )
-                            InText(
-                                name = "Shift Hours",
-                                state = states.shiftHours,
-                                focus = focuses.shiftHours,
-                                icon = R.drawable.shift_hours
-                            )
-                            if (showResult.value) OutResult(results)
+                            item {
+                                Banner(image = R.drawable.banner)
+                            }
+                            item {
+                                InText(
+                                    name = "Material Required",
+                                    state = states.reqMaterial,
+                                    focus = focuses.reqMaterial,
+                                    icon = R.drawable.req_material,
+                                    next = { focuses.remPallets.requestFocus() }
+                                )
+                            }
+                            item {
+                                InText(
+                                    name = "Remaining Pallets",
+                                    state = states.remPallets,
+                                    focus = focuses.remPallets,
+                                    icon = R.drawable.rem_pallets,
+                                    next = { focuses.remHours.requestFocus() }
+                                )
+                            }
+                            item {
+                                InText(
+                                    name = "Remaining Hours",
+                                    state = states.remHours,
+                                    focus = focuses.remHours,
+                                    icon = R.drawable.rem_hours,
+                                    next = { focuses.avgRollSize.requestFocus() }
+                                )
+                            }
+                            item {
+                                InText(
+                                    name = "Average Roll Size",
+                                    state = states.avgRollSize,
+                                    focus = focuses.avgRollSize,
+                                    icon = R.drawable.avr_roll_size,
+                                    next = { focuses.shiftHours.requestFocus() }
+                                )
+                            }
+                            item {
+                                InText(
+                                    name = "Shift Hours",
+                                    state = states.shiftHours,
+                                    focus = focuses.shiftHours,
+                                    icon = R.drawable.shift_hours,
+                                    next = { keyboardController?.hide() }
+                                )
+                            }
+                            if (showResult.value) item { OutResult(results) }
                         }
                         Row(
                             modifier = Modifier
@@ -166,7 +177,10 @@ class MainActivity : ComponentActivity() {
                                 .background(backgroundColor)
                                 .align(Alignment.BottomCenter)
                                 .padding(16.dp)
-                                .imePadding()
+                                .padding(
+                                    bottom = with(LocalDensity.current)
+                                    { WindowInsets.navigationBars.getBottom(this).toDp() }
+                                )
                                 .zIndex(1f),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -288,13 +302,11 @@ fun InText(
     name: String,
     state: MutableState<String>,
     focus: FocusRequester,
-    icon: Int
+    icon: Int,
+    next: () -> Unit
 ) {
     TextField(
         value = state.value,
-        // This onValueChanged is so ChatGPTed that I don't even understand it yet,
-        // but I will have to get back to it and figure it out
-        // It prevents anything other than floating point numbers from being entered
         onValueChange = { input ->
             state.value = input.filterIndexed { index, c ->
                 c.isDigit() || (c == '.' && !input.take(index).contains('.'))
@@ -309,6 +321,9 @@ fun InText(
             imeAction = ImeAction.Next,
             capitalization = KeyboardCapitalization.None,
             platformImeOptions = PlatformImeOptions()
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { next() }
         ),
         modifier = Modifier
             .fillMaxWidth()
